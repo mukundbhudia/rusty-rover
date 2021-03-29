@@ -25,24 +25,13 @@ fn main() {
 }
 
 fn is_valid_heading(heading: char) -> bool {
-    match heading {
-        'N' => true,
-        'E' => true,
-        'S' => true,
-        'W' => true,
-        _ => false,
-    }
+    matches!(heading, 'N' | 'E' | 'S' | 'W')
 }
 
-fn is_valid_move(move_to_check: &String) -> bool {
+fn is_valid_move(move_to_check: &str) -> bool {
     move_to_check
         .chars()
-        .find(|x| match x {
-            'L' => false,
-            'R' => false,
-            'M' => false,
-            _ => true,
-        })
+        .find(|x| !matches!(x, 'L' | 'R' | 'M'))
         .is_none()
 }
 
