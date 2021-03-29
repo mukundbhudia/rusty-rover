@@ -233,3 +233,31 @@ fn test_go_out_of_plateau_bounds_all() {
     let expected_output = Err(RoverError::OutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
 }
+
+#[test]
+fn test_collision() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![
+            (
+                PositionAndHeading {
+                    x: 1,
+                    y: 2,
+                    heading: 'N',
+                },
+                "LMLMLMLMM".to_string(),
+            ),
+            (
+                PositionAndHeading {
+                    x: 1,
+                    y: 2,
+                    heading: 'S',
+                },
+                "LMLMLMLMM".to_string(),
+            ),
+        ],
+    };
+
+    let expected_output = Err(RoverError::Collision);
+    assert_eq!(move_rover(test_input), expected_output);
+}
