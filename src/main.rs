@@ -41,7 +41,18 @@ fn move_rover(command: InputCommand) -> Vec<PositionAndHeading> {
 
         for command in commands.chars() {
             let next_heading = get_next_heading((current_position_and_heading.heading, command));
-            println!("For command {}, the next heading is: {:?}", command, next_heading);
+            if let Some(heading) = next_heading {
+                current_position_and_heading.heading = heading;
+                if command == 'M' {
+                    match heading {
+                        'N' => current_position_and_heading.y += 1,
+                        'E' => current_position_and_heading.x += 1,
+                        'S' => current_position_and_heading.y -= 1,
+                        'W' => current_position_and_heading.x -= 1,
+                        _ => {}
+                    }
+                }
+            }
         }
 
         output.push(current_position_and_heading);
