@@ -24,6 +24,63 @@ fn main() {
     println!("Hello, world!");
 }
 
+fn is_valid_heading(heading: char) -> bool {
+    match heading {
+        'N' => true,
+        'E' => true,
+        'S' => true,
+        'W' => true,
+        _ => false,
+    }
+}
+
+fn is_valid_move(move_to_check: &String) -> bool {
+    move_to_check
+        .chars()
+        .find(|x| match x {
+            'L' => false,
+            'R' => false,
+            'M' => false,
+            _ => true,
+        })
+        .is_none()
+}
+
+fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverError> {
+    let mut fixed_input_command = InputCommand {
+        ur_plateau: commands.ur_plateau,
+        rovers_to_deploy: Vec::new(),
+    };
+
+    for command in commands.rovers_to_deploy {
+        let mut command = command;
+        // Help the user out by forcing the heading to uppercase
+        command.0.heading = command
+            .0
+            .heading
+            .to_uppercase()
+            .to_string()
+            .chars()
+            .next()
+            .unwrap();
+        // Help the user out by forcing the commands to uppercase
+        command.1 = command.1.to_uppercase();
+
+        if command.0.x > commands.ur_plateau.0 || command.0.y > commands.ur_plateau.1 {
+            return Err(RoverError::InvalidStartMove);
+        }
+        println!("Heading: {}, moves: {}", command.0.heading, &command.1);
+        if !is_valid_heading(command.0.heading) {
+            return Err(RoverError::InvalidHeading);
+        }
+        if !is_valid_move(&command.1) {
+            return Err(RoverError::InvalidMove);
+        }
+        fixed_input_command.rovers_to_deploy.push(command);
+    }
+    Ok(fixed_input_command)
+}
+
 fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
     match heading_and_rotation {
         ('N', 'L') => Some('W'),
@@ -55,6 +112,7 @@ fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, Ro
 
     let mut output = Vec::new();
     let lr_plateau = (0, 0); // Lower right plateau coordinates
+    let input_command = parse_input_commands(input_command)?;
 
     for rovers_to_deploy in input_command.rovers_to_deploy {
         let mut current_position_and_heading = rovers_to_deploy.0;
