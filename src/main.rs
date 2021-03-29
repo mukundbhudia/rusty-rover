@@ -11,6 +11,12 @@ struct PositionAndHeading {
     heading: char,
 }
 
+#[derive(PartialEq, Debug)]
+enum RoverError {
+    OutOfBounds,
+    Collision,
+}
+
 fn main() {
     println!("Hello, world!");
 }
@@ -30,12 +36,12 @@ fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
     }
 }
 
-fn move_rover(command: InputCommand) -> Vec<PositionAndHeading> {
+fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
     // TODO: test and handle going out of plateau bounds
     // TODO: test and handle rovers end up in the same position
     // TODO: test and handle invalid commands
     let mut output = Vec::new();
-    for rovers_to_deploy in command.rovers_to_deploy {
+    for rovers_to_deploy in input_command.rovers_to_deploy {
         let mut current_position_and_heading = rovers_to_deploy.0;
         let commands = rovers_to_deploy.1;
 
@@ -45,7 +51,13 @@ fn move_rover(command: InputCommand) -> Vec<PositionAndHeading> {
                 current_position_and_heading.heading = heading;
                 if command == 'M' {
                     match heading {
-                        'N' => current_position_and_heading.y += 1,
+                        'N' => {
+                            if current_position_and_heading.y < input_command.ur_plateau.1 {
+                                current_position_and_heading.y += 1
+                            } else {
+                                Err(RoverError::OutOfBounds)?
+                            }
+                        }
                         'E' => current_position_and_heading.x += 1,
                         'S' => current_position_and_heading.y -= 1,
                         'W' => current_position_and_heading.x -= 1,
@@ -57,7 +69,7 @@ fn move_rover(command: InputCommand) -> Vec<PositionAndHeading> {
 
         output.push(current_position_and_heading);
     }
-    output
+    Ok(output)
 }
 
 #[test]
@@ -96,5 +108,23 @@ fn test_given_spec() {
             heading: 'E',
         },
     ];
+    assert_eq!(move_rover(test_input), Ok(expected_output));
+}
+
+#[test]
+fn test_go_out_of_plateau_bounds_north() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "MMMMMMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::OutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
 }
