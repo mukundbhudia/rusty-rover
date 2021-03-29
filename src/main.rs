@@ -15,6 +15,9 @@ struct PositionAndHeading {
 enum RoverError {
     OutOfBounds,
     Collision,
+    InvalidHeading,
+    InvalidMove,
+    InvalidStartMove,
 }
 
 fn main() {
@@ -303,5 +306,139 @@ fn test_collision_from_different_positions() {
     };
 
     let expected_output = Err(RoverError::Collision);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_bad_command_header() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'X',
+            },
+            "LMLMLMLMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::InvalidHeading);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_bad_command_lowercase_header() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'n',
+            },
+            "LMLMLMLMM".to_string(),
+        )],
+    };
+
+    let expected_output = vec![PositionAndHeading {
+        x: 1,
+        y: 3,
+        heading: 'N',
+    }];
+    assert_eq!(move_rover(test_input), Ok(expected_output));
+}
+
+#[test]
+fn test_bad_command_move() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "LABC".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::InvalidMove);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_bad_command_lowercase_move() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "LMlMLmLMM".to_string(),
+        )],
+    };
+
+    let expected_output = vec![PositionAndHeading {
+        x: 1,
+        y: 3,
+        heading: 'N',
+    }];
+    assert_eq!(move_rover(test_input), Ok(expected_output));
+}
+
+#[test]
+fn test_bad_command_start_move_y_too_large() {
+    let test_input = InputCommand {
+        ur_plateau: (2, 2),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 3,
+                heading: 'N',
+            },
+            "LRM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::InvalidStartMove);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_bad_command_start_move_x_too_large() {
+    let test_input = InputCommand {
+        ur_plateau: (2, 2),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 3,
+                y: 1,
+                heading: 'N',
+            },
+            "LRM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::InvalidStartMove);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_bad_command_start_move_x_and_y_too_large() {
+    let test_input = InputCommand {
+        ur_plateau: (2, 2),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 3,
+                y: 3,
+                heading: 'N',
+            },
+            "LRM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::InvalidStartMove);
     assert_eq!(move_rover(test_input), expected_output);
 }
