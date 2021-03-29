@@ -37,30 +37,49 @@ fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
 }
 
 fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
-    // TODO: test and handle going out of plateau bounds
     // TODO: test and handle rovers end up in the same position
     // TODO: test and handle invalid commands
     let mut output = Vec::new();
+    let lr_plateau = (0, 0); // Lower right plateau coordinates
+
     for rovers_to_deploy in input_command.rovers_to_deploy {
         let mut current_position_and_heading = rovers_to_deploy.0;
         let commands = rovers_to_deploy.1;
 
         for command in commands.chars() {
             let next_heading = get_next_heading((current_position_and_heading.heading, command));
-            if let Some(heading) = next_heading {
-                current_position_and_heading.heading = heading;
+            if let Some(next_heading) = next_heading {
+                current_position_and_heading.heading = next_heading;
                 if command == 'M' {
-                    match heading {
+                    match next_heading {
                         'N' => {
                             if current_position_and_heading.y < input_command.ur_plateau.1 {
                                 current_position_and_heading.y += 1
                             } else {
-                                Err(RoverError::OutOfBounds)?
+                                return Err(RoverError::OutOfBounds);
                             }
                         }
-                        'E' => current_position_and_heading.x += 1,
-                        'S' => current_position_and_heading.y -= 1,
-                        'W' => current_position_and_heading.x -= 1,
+                        'E' => {
+                            if current_position_and_heading.x < input_command.ur_plateau.0 {
+                                current_position_and_heading.x += 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        'S' => {
+                            if current_position_and_heading.y > lr_plateau.1 {
+                                current_position_and_heading.y -= 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        'W' => {
+                            if current_position_and_heading.x > lr_plateau.0 {
+                                current_position_and_heading.x -= 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -113,7 +132,7 @@ fn test_given_spec() {
 
 #[test]
 fn test_go_out_of_plateau_bounds_north() {
-    let test_input = InputCommand {
+    let test_input_far_out = InputCommand {
         ur_plateau: (5, 5),
         rovers_to_deploy: vec![(
             PositionAndHeading {
@@ -122,6 +141,92 @@ fn test_go_out_of_plateau_bounds_north() {
                 heading: 'N',
             },
             "MMMMMMM".to_string(),
+        )],
+    };
+
+    let test_input_on_the_border = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "MMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::OutOfBounds);
+
+    assert_eq!(move_rover(test_input_far_out), expected_output);
+    assert!(move_rover(test_input_on_the_border).is_ok());
+}
+
+#[test]
+fn test_go_out_of_plateau_bounds_east() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'E',
+            },
+            "MMMMMMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::OutOfBounds);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_go_out_of_plateau_bounds_south() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'S',
+            },
+            "MMMMMMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::OutOfBounds);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_go_out_of_plateau_bounds_west() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'W',
+            },
+            "MMMMMMM".to_string(),
+        )],
+    };
+
+    let expected_output = Err(RoverError::OutOfBounds);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_go_out_of_plateau_bounds_all() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 1,
+                heading: 'N',
+            },
+            "MMMMMMMLMMMMMLMMMMMLMMMMMLMMMMM".to_string(),
         )],
     };
 
