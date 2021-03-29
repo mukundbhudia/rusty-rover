@@ -36,9 +36,20 @@ fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
     }
 }
 
+fn will_not_collide(
+    new_rover_position: &PositionAndHeading,
+    current_rover_positions: &[PositionAndHeading],
+) -> bool {
+    current_rover_positions
+        .iter()
+        .find(|rover| rover.x == new_rover_position.x && rover.y == new_rover_position.y)
+        .is_none()
+}
+
 fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
-    // TODO: test and handle rovers end up in the same position
     // TODO: test and handle invalid commands
+    // TODO: test and handle start out of bounds
+
     let mut output = Vec::new();
     let lr_plateau = (0, 0); // Lower right plateau coordinates
 
@@ -86,8 +97,13 @@ fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, Ro
             }
         }
 
-        output.push(current_position_and_heading);
+        if will_not_collide(&current_position_and_heading, &output) {
+            output.push(current_position_and_heading);
+        } else {
+            return Err(RoverError::Collision);
+        }
     }
+
     Ok(output)
 }
 
@@ -235,7 +251,7 @@ fn test_go_out_of_plateau_bounds_all() {
 }
 
 #[test]
-fn test_collision() {
+fn test_collision_same_commands() {
     let test_input = InputCommand {
         ur_plateau: (5, 5),
         rovers_to_deploy: vec![
@@ -251,9 +267,37 @@ fn test_collision() {
                 PositionAndHeading {
                     x: 1,
                     y: 2,
-                    heading: 'S',
+                    heading: 'N',
                 },
                 "LMLMLMLMM".to_string(),
+            ),
+        ],
+    };
+
+    let expected_output = Err(RoverError::Collision);
+    assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_collision_from_different_positions() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![
+            (
+                PositionAndHeading {
+                    x: 0,
+                    y: 0,
+                    heading: 'E',
+                },
+                "MMMMLMM".to_string(),
+            ),
+            (
+                PositionAndHeading {
+                    x: 4,
+                    y: 0,
+                    heading: 'N',
+                },
+                "MM".to_string(),
             ),
         ],
     };
