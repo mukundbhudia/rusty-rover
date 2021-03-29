@@ -1,6 +1,7 @@
-struct Input {
-    ur_plateau: (i32, i32),
-    rovers_deployed: Vec<(PositionAndHeading, String)>,
+struct InputCommand {
+    ur_plateau: (i32, i32), // Upper right plateau coordinates
+    // The String below is a list of commands for the rover
+    rovers_to_deploy: Vec<(PositionAndHeading, String)>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -14,19 +15,45 @@ fn main() {
     println!("Hello, world!");
 }
 
-fn move_rover(command: Input) -> Vec<PositionAndHeading> {
-    vec![PositionAndHeading {
-        x: 0,
-        y: 0,
-        heading: 'N',
-    }]
+fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
+    match heading_and_rotation {
+        ('N', 'L') => Some('W'),
+        ('N', 'R') => Some('E'),
+        ('E', 'L') => Some('N'),
+        ('E', 'R') => Some('S'),
+        ('S', 'L') => Some('E'),
+        ('S', 'R') => Some('W'),
+        ('W', 'L') => Some('S'),
+        ('W', 'R') => Some('N'),
+        (heading, 'M') => Some(heading), // Moves don't mutate headings
+        (_, _) => None,
+    }
+}
+
+fn move_rover(command: InputCommand) -> Vec<PositionAndHeading> {
+    // TODO: test and handle going out of plateau bounds
+    // TODO: test and handle rovers end up in the same position
+    // TODO: test and handle invalid commands
+    let mut output = Vec::new();
+    for rovers_to_deploy in command.rovers_to_deploy {
+        let mut current_position_and_heading = rovers_to_deploy.0;
+        let commands = rovers_to_deploy.1;
+
+        for command in commands.chars() {
+            let next_heading = get_next_heading((current_position_and_heading.heading, command));
+            println!("For command {}, the next heading is: {:?}", command, next_heading);
+        }
+
+        output.push(current_position_and_heading);
+    }
+    output
 }
 
 #[test]
 fn test_given_spec() {
-    let test_input = Input {
+    let test_input = InputCommand {
         ur_plateau: (5, 5),
-        rovers_deployed: vec![
+        rovers_to_deploy: vec![
             (
                 PositionAndHeading {
                     x: 1,
