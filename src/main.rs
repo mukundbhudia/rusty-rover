@@ -21,6 +21,8 @@ enum RoverError {
     InvalidHeading,
     InvalidMove,
     InvalidStartMove,
+    InvalidPlateau,
+    StartOutOfBounds,
 }
 
 fn main() {
@@ -52,13 +54,14 @@ fn main() {
     if !user_input.is_empty() {
         user_input.reverse();
 
-        let ur_plateau = user_input.pop().unwrap();
-        let ur_plateau = ur_plateau
-            .chars()
-            .filter_map(|c| c.to_digit(10))
-            .map(|x| x as i32)
-            .collect::<Vec<_>>();
-        let ur_plateau = (ur_plateau[0], ur_plateau[1]);
+        let ur_plateau = match parse_user_plateau(user_input.pop().unwrap()) {
+            Ok(plateau) => plateau,
+            Err(_) => {
+                println!("Error: Please check plateau coordinates.");
+                // TODO: a better way to exit?
+                std::process::exit(1)
+            }
+        };
 
         let mut input_command = InputCommand {
             ur_plateau,
@@ -71,13 +74,8 @@ fn main() {
                     .chars()
                     .filter(|c| c.is_alphanumeric())
                     .collect::<Vec<_>>();
-                let rover_start_position = parse_rover_commands((
-                    rover_start_position[0],
-                    rover_start_position[1],
-                    rover_start_position[2],
-                ));
 
-                if let Ok(rover_start) = rover_start_position {
+                if let Ok(rover_start) = parse_rover_commands(rover_start_position) {
                     let rover_start_position = (rover_start, command[0].to_string());
                     input_command.rovers_to_deploy.push(rover_start_position);
                 } else {
@@ -86,11 +84,13 @@ fn main() {
                     );
                 }
             }
-            input_command.rovers_to_deploy.reverse();
+            if !input_command.rovers_to_deploy.is_empty() {
+                input_command.rovers_to_deploy.reverse();
 
-            match move_rover(input_command) {
-                Ok(rover_positions) => print_final_rover_positions(rover_positions),
-                Err(err) => println!("The rover had an error: {:?}", err),
+                match move_rover(input_command) {
+                    Ok(rover_positions) => print_final_rover_positions(rover_positions),
+                    Err(err) => println!("The rover had an error: {:?}. Please check one or more of your rover commands.", err),
+                }
             }
         } else {
             println!(
@@ -100,26 +100,44 @@ fn main() {
     }
 }
 
-fn print_final_rover_positions(positions: Vec<PositionAndHeading>) -> () {
+fn print_final_rover_positions(positions: Vec<PositionAndHeading>) {
     println!("\nFinal rover position(s):\n");
     for position in positions {
         println!("{} {} {}", position.x, position.y, position.heading);
     }
 }
 
-fn parse_rover_commands(command: (char, char, char)) -> Result<PositionAndHeading, RoverError> {
-    let output = PositionAndHeading {
-        x: match command.0.to_digit(10) {
-            Some(x) => x as i32,
-            None => return Err(RoverError::InvalidStartMove),
-        },
-        y: match command.1.to_digit(10) {
-            Some(x) => x as i32,
-            None => return Err(RoverError::InvalidStartMove),
-        },
-        heading: command.2,
-    };
-    Ok(output)
+fn parse_user_plateau(plateau: String) -> Result<(i32, i32), RoverError> {
+    let plateau = plateau
+        .chars()
+        .filter_map(|c| c.to_digit(10))
+        .map(|x| x as i32)
+        .collect::<Vec<_>>();
+
+    if plateau.len() < 2 {
+        Err(RoverError::InvalidPlateau)
+    } else {
+        Ok((plateau[0], plateau[1]))
+    }
+}
+
+fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, RoverError> {
+    if commands.len() == 3 {
+        let output = PositionAndHeading {
+            x: match commands[0].to_digit(10) {
+                Some(x) => x as i32,
+                None => return Err(RoverError::InvalidStartMove),
+            },
+            y: match commands[1].to_digit(10) {
+                Some(x) => x as i32,
+                None => return Err(RoverError::InvalidStartMove),
+            },
+            heading: commands[2],
+        };
+        Ok(output)
+    } else {
+        Err(RoverError::InvalidMove)
+    }
 }
 
 fn is_valid_heading(heading: char) -> bool {
@@ -150,11 +168,16 @@ fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverErr
             .chars()
             .next()
             .unwrap();
-        // Help the user out by forcing the commands to uppercase
-        command.1 = command.1.to_uppercase();
+        // Help the user out by forcing the commands to uppercase and removing non-alphabetic chars
+        command.1 = command
+            .1
+            .to_uppercase()
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .collect::<String>();
 
         if command.0.x > commands.ur_plateau.0 || command.0.y > commands.ur_plateau.1 {
-            return Err(RoverError::InvalidStartMove);
+            return Err(RoverError::StartOutOfBounds);
         }
         if !is_valid_heading(command.0.heading) {
             return Err(RoverError::InvalidHeading);
@@ -193,9 +216,6 @@ fn will_not_collide(
 }
 
 fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
-    // TODO: test and handle invalid commands
-    // TODO: test and handle start out of bounds
-
     let mut output = Vec::new();
     let lr_plateau = (0, 0); // Lower right plateau coordinates
     let input_command = parse_input_commands(input_command)?;
@@ -512,6 +532,50 @@ fn test_bad_command_move() {
 }
 
 #[test]
+fn test_bad_command_move_handle_extra_spaces() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "L M LML MLM  M".to_string(),
+        )],
+    };
+
+    let expected_output = vec![PositionAndHeading {
+        x: 1,
+        y: 3,
+        heading: 'N',
+    }];
+    assert_eq!(move_rover(test_input), Ok(expected_output));
+}
+
+#[test]
+fn test_bad_command_move_handle_extra_non_alphanumerics() {
+    let test_input = InputCommand {
+        ur_plateau: (5, 5),
+        rovers_to_deploy: vec![(
+            PositionAndHeading {
+                x: 1,
+                y: 2,
+                heading: 'N',
+            },
+            "LMLM%LM4LM'M".to_string(),
+        )],
+    };
+
+    let expected_output = vec![PositionAndHeading {
+        x: 1,
+        y: 3,
+        heading: 'N',
+    }];
+    assert_eq!(move_rover(test_input), Ok(expected_output));
+}
+
+#[test]
 fn test_bad_command_lowercase_move() {
     let test_input = InputCommand {
         ur_plateau: (5, 5),
@@ -547,7 +611,7 @@ fn test_bad_command_start_move_y_too_large() {
         )],
     };
 
-    let expected_output = Err(RoverError::InvalidStartMove);
+    let expected_output = Err(RoverError::StartOutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
 }
 
@@ -565,7 +629,7 @@ fn test_bad_command_start_move_x_too_large() {
         )],
     };
 
-    let expected_output = Err(RoverError::InvalidStartMove);
+    let expected_output = Err(RoverError::StartOutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
 }
 
@@ -583,6 +647,6 @@ fn test_bad_command_start_move_x_and_y_too_large() {
         )],
     };
 
-    let expected_output = Err(RoverError::InvalidStartMove);
+    let expected_output = Err(RoverError::StartOutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
 }
