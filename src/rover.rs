@@ -1,0 +1,198 @@
+#[derive(Debug)]
+pub struct InputCommand {
+    pub ur_plateau: (i32, i32), // Upper right plateau coordinates
+    // The String below is a list of commands for the rover
+    pub rovers_to_deploy: Vec<(PositionAndHeading, String)>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PositionAndHeading {
+    pub x: i32,
+    pub y: i32,
+    pub heading: char,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum RoverError {
+    OutOfBounds,
+    Collision,
+    InvalidHeading,
+    InvalidMove,
+    InvalidStartMove,
+    InvalidPlateau,
+    StartOutOfBounds,
+}
+
+pub fn print_final_rover_positions(positions: Vec<PositionAndHeading>) {
+    println!("\nFinal rover position(s):\n");
+    for position in positions {
+        println!("{} {} {}", position.x, position.y, position.heading);
+    }
+}
+
+pub fn parse_user_plateau(plateau: String) -> Result<(i32, i32), RoverError> {
+    let plateau = plateau
+        .chars()
+        .filter_map(|c| c.to_digit(10))
+        .map(|x| x as i32)
+        .collect::<Vec<_>>();
+
+    if plateau.len() < 2 {
+        Err(RoverError::InvalidPlateau)
+    } else {
+        Ok((plateau[0], plateau[1]))
+    }
+}
+
+pub fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, RoverError> {
+    if commands.len() == 3 {
+        let output = PositionAndHeading {
+            x: match commands[0].to_digit(10) {
+                Some(x) => x as i32,
+                None => return Err(RoverError::InvalidStartMove),
+            },
+            y: match commands[1].to_digit(10) {
+                Some(x) => x as i32,
+                None => return Err(RoverError::InvalidStartMove),
+            },
+            heading: commands[2],
+        };
+        Ok(output)
+    } else {
+        Err(RoverError::InvalidMove)
+    }
+}
+
+pub fn is_valid_heading(heading: char) -> bool {
+    matches!(heading, 'N' | 'E' | 'S' | 'W')
+}
+
+pub fn is_valid_move(move_to_check: &str) -> bool {
+    move_to_check
+        .chars()
+        .find(|x| !matches!(x, 'L' | 'R' | 'M'))
+        .is_none()
+}
+
+pub fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverError> {
+    let mut fixed_input_command = InputCommand {
+        ur_plateau: commands.ur_plateau,
+        rovers_to_deploy: Vec::new(),
+    };
+
+    for command in commands.rovers_to_deploy {
+        let mut command = command;
+        // Help the user out by forcing the heading to uppercase
+        command.0.heading = command
+            .0
+            .heading
+            .to_uppercase()
+            .to_string()
+            .chars()
+            .next()
+            .unwrap();
+        // Help the user out by forcing the commands to uppercase and removing non-alphabetic chars
+        command.1 = command
+            .1
+            .to_uppercase()
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .collect::<String>();
+
+        if command.0.x > commands.ur_plateau.0 || command.0.y > commands.ur_plateau.1 {
+            return Err(RoverError::StartOutOfBounds);
+        }
+        if !is_valid_heading(command.0.heading) {
+            return Err(RoverError::InvalidHeading);
+        }
+        if !is_valid_move(&command.1) {
+            return Err(RoverError::InvalidMove);
+        }
+        fixed_input_command.rovers_to_deploy.push(command);
+    }
+    Ok(fixed_input_command)
+}
+
+pub fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
+    match heading_and_rotation {
+        ('N', 'L') => Some('W'),
+        ('N', 'R') => Some('E'),
+        ('E', 'L') => Some('N'),
+        ('E', 'R') => Some('S'),
+        ('S', 'L') => Some('E'),
+        ('S', 'R') => Some('W'),
+        ('W', 'L') => Some('S'),
+        ('W', 'R') => Some('N'),
+        (heading, 'M') => Some(heading), // Moves don't mutate headings
+        (_, _) => None,
+    }
+}
+
+pub fn will_not_collide(
+    new_rover_position: &PositionAndHeading,
+    current_rover_positions: &[PositionAndHeading],
+) -> bool {
+    current_rover_positions
+        .iter()
+        .find(|rover| rover.x == new_rover_position.x && rover.y == new_rover_position.y)
+        .is_none()
+}
+
+pub fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
+    let mut output = Vec::new();
+    let lr_plateau = (0, 0); // Lower right plateau coordinates
+    let input_command = parse_input_commands(input_command)?;
+
+    for rovers_to_deploy in input_command.rovers_to_deploy {
+        let mut current_position_and_heading = rovers_to_deploy.0;
+        let commands = rovers_to_deploy.1;
+
+        for command in commands.chars() {
+            let next_heading = get_next_heading((current_position_and_heading.heading, command));
+            if let Some(next_heading) = next_heading {
+                current_position_and_heading.heading = next_heading;
+                if command == 'M' {
+                    match next_heading {
+                        'N' => {
+                            if current_position_and_heading.y < input_command.ur_plateau.1 {
+                                current_position_and_heading.y += 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        'E' => {
+                            if current_position_and_heading.x < input_command.ur_plateau.0 {
+                                current_position_and_heading.x += 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        'S' => {
+                            if current_position_and_heading.y > lr_plateau.1 {
+                                current_position_and_heading.y -= 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        'W' => {
+                            if current_position_and_heading.x > lr_plateau.0 {
+                                current_position_and_heading.x -= 1
+                            } else {
+                                return Err(RoverError::OutOfBounds);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        if will_not_collide(&current_position_and_heading, &output) {
+            output.push(current_position_and_heading);
+        } else {
+            return Err(RoverError::Collision);
+        }
+    }
+
+    Ok(output)
+}
