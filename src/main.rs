@@ -24,8 +24,14 @@ enum RoverError {
 }
 
 fn main() {
-    println!("Welcome to NASA's Mars Rover Simulator\n");
+    println!("\nWelcome to NASA's Mars Rover Simulator\n");
+    println!("Commands are entered line by line. After typing your commands you can hit the enter/return key to input the command.");
+    println!("To quit, press the 'ctrl+c' keyboard combination.");
+    println!(
+        "Press 'd' then the return/enter key when you're ready to simulate the commands entered."
+    );
     println!("Please enter your commands to begin...\n");
+
     let mut user_input: Vec<String> = Vec::new();
 
     loop {
@@ -36,17 +42,12 @@ fn main() {
             .expect("Failed to read line");
 
         terminal_line = terminal_line.trim().to_string();
-        println!(
-            "You entered: {}. Enter 'd' when you're done.",
-            terminal_line
-        );
+        println!("You entered: '{}'...", terminal_line);
         if terminal_line == *"d" {
             break;
         }
         user_input.push(terminal_line);
     }
-
-    println!("\nProcessing commands...\n");
 
     if !user_input.is_empty() {
         user_input.reverse();
@@ -88,12 +89,21 @@ fn main() {
             input_command.rovers_to_deploy.reverse();
 
             match move_rover(input_command) {
-                Ok(output) => println!("Output: {:?}", output),
+                Ok(rover_positions) => print_final_rover_positions(rover_positions),
                 Err(err) => println!("The rover had an error: {:?}", err),
             }
         } else {
-            println!("Error: incorrect number of rover commands");
+            println!(
+                "Error: incorrect number of rover commands. Please check the commands entered."
+            );
         }
+    }
+}
+
+fn print_final_rover_positions(positions: Vec<PositionAndHeading>) -> () {
+    println!("\nFinal rover position(s):\n");
+    for position in positions {
+        println!("{} {} {}", position.x, position.y, position.heading);
     }
 }
 
