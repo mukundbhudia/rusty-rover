@@ -1,5 +1,6 @@
 use std::io;
 
+#[derive(Debug)]
 struct InputCommand {
     ur_plateau: (i32, i32), // Upper right plateau coordinates
     // The String below is a list of commands for the rover
@@ -45,38 +46,70 @@ fn main() {
         user_input.push(terminal_line);
     }
 
-    println!("Processing commands...\n");
+    println!("\nProcessing commands...\n");
 
     if !user_input.is_empty() {
         user_input.reverse();
 
         let ur_plateau = user_input.pop().unwrap();
-        let ur_plateau = ur_plateau.split_whitespace().collect::<Vec<_>>();
-        let ur_plateau = (
-            ur_plateau[0]
-                .parse::<i32>()
-                .expect("Plateau coordinates need to be integers"),
-            ur_plateau[1]
-                .parse::<i32>()
-                .expect("Plateau coordinates need to be integers"),
-        );
-        println!("ur_plateau: {:?}", ur_plateau);
+        let ur_plateau = ur_plateau
+            .chars()
+            .filter_map(|c| c.to_digit(10))
+            .map(|x| x as i32)
+            .collect::<Vec<_>>();
+        let ur_plateau = (ur_plateau[0], ur_plateau[1]);
 
-        let input_command = InputCommand {
+        let mut input_command = InputCommand {
             ur_plateau,
             rovers_to_deploy: Vec::new(),
         };
 
         if !user_input.is_empty() && user_input.len() % 2 == 0 {
-            println!("Processing rover commands...");
-            for command in user_input {
-                // let rover_instructions;
-                println!("command: {}", command);
+            for command in user_input.chunks(2) {
+                let rover_start_position = command[1]
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .collect::<Vec<_>>();
+                let rover_start_position = parse_rover_commands((
+                    rover_start_position[0],
+                    rover_start_position[1],
+                    rover_start_position[2],
+                ));
+
+                if let Ok(rover_start) = rover_start_position {
+                    let rover_start_position = (rover_start, command[0].to_string());
+                    input_command.rovers_to_deploy.push(rover_start_position);
+                } else {
+                    println!(
+                        "Error: Bad rover start position. Please check coordinates and heading."
+                    );
+                }
+            }
+            input_command.rovers_to_deploy.reverse();
+
+            match move_rover(input_command) {
+                Ok(output) => println!("Output: {:?}", output),
+                Err(err) => println!("The rover had an error: {:?}", err),
             }
         } else {
             println!("Error: incorrect number of rover commands");
         }
     }
+}
+
+fn parse_rover_commands(command: (char, char, char)) -> Result<PositionAndHeading, RoverError> {
+    let output = PositionAndHeading {
+        x: match command.0.to_digit(10) {
+            Some(x) => x as i32,
+            None => return Err(RoverError::InvalidStartMove),
+        },
+        y: match command.1.to_digit(10) {
+            Some(x) => x as i32,
+            None => return Err(RoverError::InvalidStartMove),
+        },
+        heading: command.2,
+    };
+    Ok(output)
 }
 
 fn is_valid_heading(heading: char) -> bool {
@@ -113,7 +146,6 @@ fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverErr
         if command.0.x > commands.ur_plateau.0 || command.0.y > commands.ur_plateau.1 {
             return Err(RoverError::InvalidStartMove);
         }
-        println!("Heading: {}, moves: {}", command.0.heading, &command.1);
         if !is_valid_heading(command.0.heading) {
             return Err(RoverError::InvalidHeading);
         }
