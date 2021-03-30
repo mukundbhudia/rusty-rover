@@ -1,3 +1,5 @@
+use std::io;
+
 struct InputCommand {
     ur_plateau: (i32, i32), // Upper right plateau coordinates
     // The String below is a list of commands for the rover
@@ -21,7 +23,60 @@ enum RoverError {
 }
 
 fn main() {
-    println!("Hello, world!");
+    println!("Welcome to NASA's Mars Rover Simulator\n");
+    println!("Please enter your commands to begin...\n");
+    let mut user_input: Vec<String> = Vec::new();
+
+    loop {
+        let mut terminal_line = String::new();
+
+        io::stdin()
+            .read_line(&mut terminal_line)
+            .expect("Failed to read line");
+
+        terminal_line = terminal_line.trim().to_string();
+        println!(
+            "You entered: {}. Enter 'd' when you're done.",
+            terminal_line
+        );
+        if terminal_line == *"d" {
+            break;
+        }
+        user_input.push(terminal_line);
+    }
+
+    println!("Processing commands...\n");
+
+    if !user_input.is_empty() {
+        user_input.reverse();
+
+        let ur_plateau = user_input.pop().unwrap();
+        let ur_plateau = ur_plateau.split_whitespace().collect::<Vec<_>>();
+        let ur_plateau = (
+            ur_plateau[0]
+                .parse::<i32>()
+                .expect("Plateau coordinates need to be integers"),
+            ur_plateau[1]
+                .parse::<i32>()
+                .expect("Plateau coordinates need to be integers"),
+        );
+        println!("ur_plateau: {:?}", ur_plateau);
+
+        let input_command = InputCommand {
+            ur_plateau,
+            rovers_to_deploy: Vec::new(),
+        };
+
+        if !user_input.is_empty() && user_input.len() % 2 == 0 {
+            println!("Processing rover commands...");
+            for command in user_input {
+                // let rover_instructions;
+                println!("command: {}", command);
+            }
+        } else {
+            println!("Error: incorrect number of rover commands");
+        }
+    }
 }
 
 fn is_valid_heading(heading: char) -> bool {
