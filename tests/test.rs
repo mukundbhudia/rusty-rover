@@ -1,4 +1,4 @@
-use rusty_rover::rover::{move_rover, InputCommand, PositionAndHeading, RoverError};
+use rusty_rover::rover::{move_rover, parse_user_plateau, InputCommand, PositionAndHeading, RoverError};
 
 #[test]
 fn test_given_spec() {
@@ -375,4 +375,39 @@ fn test_bad_command_start_move_x_and_y_too_large() {
 
     let expected_output = Err(RoverError::StartOutOfBounds);
     assert_eq!(move_rover(test_input), expected_output);
+}
+
+#[test]
+fn test_parse_user_plateau_standard() {
+    let test_input = "5 5".to_string();
+    let expected_output = Ok((5, 5));
+    assert_eq!(parse_user_plateau(test_input), expected_output);
+}
+
+#[test]
+fn test_parse_user_plateau_no_spaces() {
+    let test_input = "55".to_string();
+    let expected_output = Ok((5, 5));
+    assert_eq!(parse_user_plateau(test_input), expected_output);
+}
+
+#[test]
+fn test_parse_user_plateau_empty() {
+    let test_input = "".to_string();
+    let expected_output = Err(RoverError::InvalidPlateau);
+    assert_eq!(parse_user_plateau(test_input), expected_output);
+}
+
+#[test]
+fn test_parse_user_plateau_missing_coordinate() {
+    let test_input = "4".to_string();
+    let expected_output = Err(RoverError::InvalidPlateau);
+    assert_eq!(parse_user_plateau(test_input), expected_output);
+}
+
+#[test]
+fn test_parse_user_plateau_special_chars() {
+    let test_input = "#5$5..;".to_string();
+    let expected_output = Ok((5, 5));
+    assert_eq!(parse_user_plateau(test_input), expected_output);
 }
