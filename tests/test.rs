@@ -1,4 +1,6 @@
-use rusty_rover::rover::{move_rover, parse_user_plateau, InputCommand, PositionAndHeading, RoverError};
+use rusty_rover::rover::{
+    parse_user_plateau, simulate_rover_move, InputCommand, PositionAndHeading, RoverError,
+};
 
 #[test]
 fn test_given_spec() {
@@ -36,7 +38,7 @@ fn test_given_spec() {
             heading: 'E',
         },
     ];
-    assert_eq!(move_rover(test_input), Ok(expected_output));
+    assert_eq!(simulate_rover_move(test_input), Ok(expected_output));
 }
 
 #[test]
@@ -67,8 +69,8 @@ fn test_go_out_of_plateau_bounds_north() {
 
     let expected_output = Err(RoverError::OutOfBounds);
 
-    assert_eq!(move_rover(test_input_far_out), expected_output);
-    assert!(move_rover(test_input_on_the_border).is_ok());
+    assert_eq!(simulate_rover_move(test_input_far_out), expected_output);
+    assert!(simulate_rover_move(test_input_on_the_border).is_ok());
 }
 
 #[test]
@@ -86,7 +88,7 @@ fn test_go_out_of_plateau_bounds_east() {
     };
 
     let expected_output = Err(RoverError::OutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -104,7 +106,7 @@ fn test_go_out_of_plateau_bounds_south() {
     };
 
     let expected_output = Err(RoverError::OutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -122,7 +124,7 @@ fn test_go_out_of_plateau_bounds_west() {
     };
 
     let expected_output = Err(RoverError::OutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -140,7 +142,7 @@ fn test_go_out_of_plateau_bounds_all() {
     };
 
     let expected_output = Err(RoverError::OutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -168,7 +170,7 @@ fn test_collision_same_commands() {
     };
 
     let expected_output = Err(RoverError::Collision);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -196,7 +198,7 @@ fn test_collision_from_different_positions() {
     };
 
     let expected_output = Err(RoverError::Collision);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -214,7 +216,7 @@ fn test_bad_command_header() {
     };
 
     let expected_output = Err(RoverError::InvalidHeading);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -236,7 +238,7 @@ fn test_bad_command_lowercase_header() {
         y: 3,
         heading: 'N',
     }];
-    assert_eq!(move_rover(test_input), Ok(expected_output));
+    assert_eq!(simulate_rover_move(test_input), Ok(expected_output));
 }
 
 #[test]
@@ -254,7 +256,7 @@ fn test_bad_command_move() {
     };
 
     let expected_output = Err(RoverError::InvalidMove);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -276,7 +278,7 @@ fn test_bad_command_move_handle_extra_spaces() {
         y: 3,
         heading: 'N',
     }];
-    assert_eq!(move_rover(test_input), Ok(expected_output));
+    assert_eq!(simulate_rover_move(test_input), Ok(expected_output));
 }
 
 #[test]
@@ -298,7 +300,7 @@ fn test_bad_command_move_handle_extra_non_alphanumerics() {
         y: 3,
         heading: 'N',
     }];
-    assert_eq!(move_rover(test_input), Ok(expected_output));
+    assert_eq!(simulate_rover_move(test_input), Ok(expected_output));
 }
 
 #[test]
@@ -320,7 +322,7 @@ fn test_bad_command_lowercase_move() {
         y: 3,
         heading: 'N',
     }];
-    assert_eq!(move_rover(test_input), Ok(expected_output));
+    assert_eq!(simulate_rover_move(test_input), Ok(expected_output));
 }
 
 #[test]
@@ -338,7 +340,7 @@ fn test_bad_command_start_move_y_too_large() {
     };
 
     let expected_output = Err(RoverError::StartOutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -356,7 +358,7 @@ fn test_bad_command_start_move_x_too_large() {
     };
 
     let expected_output = Err(RoverError::StartOutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]
@@ -374,7 +376,7 @@ fn test_bad_command_start_move_x_and_y_too_large() {
     };
 
     let expected_output = Err(RoverError::StartOutOfBounds);
-    assert_eq!(move_rover(test_input), expected_output);
+    assert_eq!(simulate_rover_move(test_input), expected_output);
 }
 
 #[test]

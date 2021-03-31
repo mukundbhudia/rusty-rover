@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub struct InputCommand {
     pub ur_plateau: (i32, i32), // Upper right plateau coordinates
-    // The String below is a list of commands for the rover
+    // The String below is a list of commands/moves for the rover
     pub rovers_to_deploy: Vec<(PositionAndHeading, String)>,
 }
 
@@ -33,6 +33,7 @@ pub fn print_final_rover_positions(positions: Vec<PositionAndHeading>) {
 }
 
 pub fn parse_user_plateau(plateau: String) -> Result<(i32, i32), RoverError> {
+    // Help the user by stripping out non digit chars
     let plateau = plateau
         .chars()
         .filter_map(|c| c.to_digit(10))
@@ -40,6 +41,7 @@ pub fn parse_user_plateau(plateau: String) -> Result<(i32, i32), RoverError> {
         .collect::<Vec<_>>();
 
     if plateau.len() < 2 {
+        // Expecting only a 2d coordinate
         Err(RoverError::InvalidPlateau)
     } else {
         Ok((plateau[0], plateau[1]))
@@ -55,8 +57,10 @@ pub fn parse_rover_to_deploy(
         rovers_to_deploy: Vec::new(),
     };
 
+    // Process each rover command as a paired set of start position and moves
     if !rovers.is_empty() && rovers.len() % 2 == 0 {
         for command in rovers.chunks(2) {
+            // Help the user out by accepting only alphanumeric chars
             let rover_start_position = command[1]
                 .chars()
                 .filter(|c| c.is_alphanumeric())
@@ -69,18 +73,16 @@ pub fn parse_rover_to_deploy(
                 return Err(RoverError::InvalidStartPosition);
             }
         }
-
-        if !input_command.rovers_to_deploy.is_empty() {
-            input_command.rovers_to_deploy.reverse();
-        }
+        // Reverse back from 'stack' to vec. TODO: a better way than this?
+        input_command.rovers_to_deploy.reverse();
     } else {
         return Err(RoverError::InvalidNumberOfCommandsForRover);
     }
-
     Ok(input_command)
 }
 
 fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, RoverError> {
+    // Rover position must be 3 chars: x, y coordinate and a heading
     if commands.len() == 3 {
         let output = PositionAndHeading {
             x: match commands[0].to_digit(10) {
@@ -118,7 +120,7 @@ fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverErr
 
     for command in commands.rovers_to_deploy {
         let mut command = command;
-        // Help the user out by forcing the heading to uppercase
+        // Help the user by forcing the heading to uppercase
         command.0.heading = command
             .0
             .heading
@@ -127,7 +129,7 @@ fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverErr
             .chars()
             .next()
             .unwrap();
-        // Help the user out by forcing the commands to uppercase and removing non-alphabetic chars
+        // Help the user by forcing the commands to uppercase and removing non-alphabetic chars
         command.1 = command
             .1
             .to_uppercase()
@@ -150,6 +152,7 @@ fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverErr
 }
 
 fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
+    // Given current heading and intended next move, map the next heading
     match heading_and_rotation {
         ('N', 'L') => Some('W'),
         ('N', 'R') => Some('E'),
@@ -168,26 +171,36 @@ fn will_not_collide(
     new_rover_position: &PositionAndHeading,
     current_rover_positions: &[PositionAndHeading],
 ) -> bool {
+    // Check that for all rover positions, is the next rover in the same position
     current_rover_positions
         .iter()
-        .find(|rover| rover.x == new_rover_position.x && rover.y == new_rover_position.y)
+        .find(|current_rover_position| {
+            current_rover_position.x == new_rover_position.x
+                && current_rover_position.y == new_rover_position.y
+        })
         .is_none()
 }
 
-pub fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>, RoverError> {
+pub fn simulate_rover_move(
+    input_command: InputCommand,
+) -> Result<Vec<PositionAndHeading>, RoverError> {
     let mut output = Vec::new();
     let lr_plateau = (0, 0); // Lower right plateau coordinates
     let input_command = parse_input_commands(input_command)?;
 
     for rovers_to_deploy in input_command.rovers_to_deploy {
+        // Keep the current rover state in memory to mutate as moves are processed
         let mut current_position_and_heading = rovers_to_deploy.0;
-        let commands = rovers_to_deploy.1;
 
-        for command in commands.chars() {
+        for command in rovers_to_deploy.1.chars() {
             let next_heading = get_next_heading((current_position_and_heading.heading, command));
+
             if let Some(next_heading) = next_heading {
                 current_position_and_heading.heading = next_heading;
+                // Apply moves if move command found
                 if command == 'M' {
+                    // Move relevant coordinate depending on heading and checking
+                    // if the next move is within the plateau bounds
                     match next_heading {
                         'N' => {
                             if current_position_and_heading.y < input_command.ur_plateau.1 {
@@ -222,7 +235,7 @@ pub fn move_rover(input_command: InputCommand) -> Result<Vec<PositionAndHeading>
                 }
             }
         }
-
+        // With all the moves applied, check if the rover won't collide to existing rovers
         if will_not_collide(&current_position_and_heading, &output) {
             output.push(current_position_and_heading);
         } else {
