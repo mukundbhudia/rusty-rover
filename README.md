@@ -1,5 +1,6 @@
 # rusty-rover
 
+## Problem specification
 The problem below requires some kind of input. You are free to implement any mechanism for feeding input into your solution (for
 example, using
 hard coded data within a unit test). 
@@ -11,7 +12,7 @@ correctly against the supplied test data.
 We highly recommend using a unit testing framework. Even if you have not used it before, it is simple to learn and incredibly useful.
 The code you write should be of production quality, and most importantly, it should be code you are proud of.
 
-## Mars rover details
+### Mars rover details
 A squad of robotic rovers are to be landed by NASA on a plateau on Mars. This plateau, which is curiously rectangular, must be navigated by the rovers so that their on board cameras can get a complete
 view of the
 surrounding terrain to send back to Earth.
@@ -30,7 +31,7 @@ degrees left or right respectively, without moving from its current spot.
 `'M'` means move forward one grid point, and maintain the same heading.
 Assume that the square directly North from `(x, y)` is `(x, y+1)`.
 
-## Input
+### Input
 The first line of input is the upper-right coordinates of the plateau, the lower-left coordinates are assumed to be `0, 0`.
 
 The rest of the input is information pertaining to the rovers that have been deployed. Each rover has two lines of input. 
@@ -44,7 +45,7 @@ orientation.
 Each rover will be finished sequentially, which means that the second rover won't start to move until the first one has finished
 moving.
 
-## Output
+### Output
 The output for each rover should be its final co-ordinates and heading.
 
 Test Input:
@@ -60,3 +61,24 @@ Expected Output:
 1 3 N
 5 1 E
 ```
+
+## Solution information
+
+### Pre-requisites
+
+- [Install Rust here](https://www.rust-lang.org/tools/install).
+- Minimum Supported Rust Version (MSRV) is any 2018 edition.
+
+### Development
+
+- Within the repo directory run `cargo r`. Follow the instructions outputted from the terminal and enter your commands.
+
+### Production
+
+- To make a production build, within the repo directory run `cargo b --release`.
+- To run the release build, within the project directory run `target/release/rusty-rover`.
+
+### Testing
+
+- To run **all** your tests, within the repo directory run `cargo t`. This will run all tests in the `/tests` directory.
+- To run test a **specific** test such as `/tests/my_test.rs`, within the repo directory run `cargo t --test my_test`.
