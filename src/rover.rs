@@ -19,7 +19,9 @@ pub enum RoverError {
     InvalidHeading,
     InvalidMove,
     InvalidStartMove,
+    InvalidStartPosition,
     InvalidPlateau,
+    InvalidNumberOfCommandsForRover,
     StartOutOfBounds,
 }
 
@@ -44,7 +46,41 @@ pub fn parse_user_plateau(plateau: String) -> Result<(i32, i32), RoverError> {
     }
 }
 
-pub fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, RoverError> {
+pub fn parse_rover_to_deploy(
+    ur_plateau: (i32, i32),
+    rovers: Vec<String>,
+) -> Result<InputCommand, RoverError> {
+    let mut input_command = InputCommand {
+        ur_plateau,
+        rovers_to_deploy: Vec::new(),
+    };
+
+    if !rovers.is_empty() && rovers.len() % 2 == 0 {
+        for command in rovers.chunks(2) {
+            let rover_start_position = command[1]
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .collect::<Vec<_>>();
+
+            if let Ok(rover_start) = parse_rover_commands(rover_start_position) {
+                let rover_start_position = (rover_start, command[0].to_string());
+                input_command.rovers_to_deploy.push(rover_start_position);
+            } else {
+                return Err(RoverError::InvalidStartPosition);
+            }
+        }
+
+        if !input_command.rovers_to_deploy.is_empty() {
+            input_command.rovers_to_deploy.reverse();
+        }
+    } else {
+        return Err(RoverError::InvalidNumberOfCommandsForRover);
+    }
+
+    Ok(input_command)
+}
+
+fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, RoverError> {
     if commands.len() == 3 {
         let output = PositionAndHeading {
             x: match commands[0].to_digit(10) {
@@ -63,18 +99,18 @@ pub fn parse_rover_commands(commands: Vec<char>) -> Result<PositionAndHeading, R
     }
 }
 
-pub fn is_valid_heading(heading: char) -> bool {
+fn is_valid_heading(heading: char) -> bool {
     matches!(heading, 'N' | 'E' | 'S' | 'W')
 }
 
-pub fn is_valid_move(move_to_check: &str) -> bool {
+fn is_valid_move(move_to_check: &str) -> bool {
     move_to_check
         .chars()
         .find(|x| !matches!(x, 'L' | 'R' | 'M'))
         .is_none()
 }
 
-pub fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverError> {
+fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, RoverError> {
     let mut fixed_input_command = InputCommand {
         ur_plateau: commands.ur_plateau,
         rovers_to_deploy: Vec::new(),
@@ -113,7 +149,7 @@ pub fn parse_input_commands(commands: InputCommand) -> Result<InputCommand, Rove
     Ok(fixed_input_command)
 }
 
-pub fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
+fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
     match heading_and_rotation {
         ('N', 'L') => Some('W'),
         ('N', 'R') => Some('E'),
@@ -128,7 +164,7 @@ pub fn get_next_heading(heading_and_rotation: (char, char)) -> Option<char> {
     }
 }
 
-pub fn will_not_collide(
+fn will_not_collide(
     new_rover_position: &PositionAndHeading,
     current_rover_positions: &[PositionAndHeading],
 ) -> bool {

@@ -1,13 +1,12 @@
 use std::io;
 
 pub mod rover;
-use rover::{
-    move_rover, parse_rover_commands, parse_user_plateau, print_final_rover_positions, InputCommand,
-};
+use rover::{move_rover, parse_rover_to_deploy, parse_user_plateau, print_final_rover_positions};
 
 fn main() {
     println!("\nWelcome to NASA's Mars Rover Simulator\n");
-    println!("Commands are entered line by line. After typing your commands you can hit the enter/return key to input the command.");
+    println!("Commands are entered line by line.");
+    println!("After typing your commands, hit the enter/return key to input the command into the simulator.");
     println!("To quit, press the 'ctrl+c' keyboard combination.");
     println!(
         "Press 'd' then the return/enter key when you're ready to simulate the commands entered."
@@ -36,46 +35,23 @@ fn main() {
 
         let ur_plateau = match parse_user_plateau(user_input.pop().unwrap()) {
             Ok(plateau) => plateau,
-            Err(_) => {
-                println!("Error: Please check plateau coordinates.");
-                // TODO: a better way to exit?
+            Err(err) => {
+                println!("Error: {:?}. Please check plateau coordinates.", err);
                 std::process::exit(1)
             }
         };
 
-        let mut input_command = InputCommand {
-            ur_plateau,
-            rovers_to_deploy: Vec::new(),
+        let input_command = match parse_rover_to_deploy(ur_plateau, user_input) {
+            Ok(input_command) => input_command,
+            Err(err) => {
+                println!("Error: {:?}. Please check your rover command(s).", err);
+                std::process::exit(1)
+            }
         };
 
-        if !user_input.is_empty() && user_input.len() % 2 == 0 {
-            for command in user_input.chunks(2) {
-                let rover_start_position = command[1]
-                    .chars()
-                    .filter(|c| c.is_alphanumeric())
-                    .collect::<Vec<_>>();
-
-                if let Ok(rover_start) = parse_rover_commands(rover_start_position) {
-                    let rover_start_position = (rover_start, command[0].to_string());
-                    input_command.rovers_to_deploy.push(rover_start_position);
-                } else {
-                    println!(
-                        "Error: Bad rover start position. Please check coordinates and heading."
-                    );
-                }
-            }
-            if !input_command.rovers_to_deploy.is_empty() {
-                input_command.rovers_to_deploy.reverse();
-
-                match move_rover(input_command) {
-                    Ok(rover_positions) => print_final_rover_positions(rover_positions),
-                    Err(err) => println!("The rover had an error: {:?}. Please check one or more of your rover commands.", err),
-                }
-            }
-        } else {
-            println!(
-                "Error: incorrect number of rover commands. Please check the commands entered."
-            );
+        match move_rover(input_command) {
+            Ok(rover_positions) => print_final_rover_positions(rover_positions),
+            Err(err) => println!("Error: {:?}. Please check your rover command(s).", err),
         }
     }
 }
